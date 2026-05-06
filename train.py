@@ -219,13 +219,23 @@ def main():
     for sid in SUBJECTS:
         print(f"\nSubject {sid} …")
         d = subjects_data[sid]
+        
+        X_tr, X_val, y_tr, y_val = train_test_split(
+            d["X_train"], d["y_train"],
+            test_size=0.15,
+            stratify=d["y_train"],
+            random_state=SEED,
+        )
+
         _, best_state, history = train_model(
-            d["X_train"], d["y_train"], d["n_channels"], d["n_times"],
+            X_tr, y_tr, d["n_channels"], d["n_times"],
             lr=BEST_LR, batch_size=BEST_BATCH, weight_decay=BEST_WD,
             epochs=FINAL_EPOCHS,
+            X_val=X_val, y_val=y_val,   # ← pass the real val split
             save_path=f"models/best_model_s{sid}.pt",
             verbose=True,
         )
+        
         all_histories[sid] = history
 
         model = build_model(d["n_channels"], d["n_times"])
@@ -297,9 +307,11 @@ def main():
     fig, axes = plt.subplots(2, 3, figsize=(14, 7), sharey=True)
     for ax, sid in zip(axes.flatten(), SUBJECTS):
         h  = all_histories[sid]
+        second_key = "val_acc" if "val_acc" in h else "train_eval_acc"
+        label_ = "val (held-out)" if "val_acc" in h else "train-eval (no dropout)"
         ep = range(1, len(h["train_acc"]) + 1)
         ax.plot(ep, h["train_acc"],       label="train (dropout ON)",  color="#4C72B0")
-        ax.plot(ep, h["train_eval_acc"],  label="train-eval (no dropout)", color="#DD8452", linestyle="--")
+        ax.plot(ep, h[second_key], label=label_, color="#DD8452", linestyle="--")
         ax.axhline(0.5, color="red", linestyle=":", linewidth=1, alpha=0.6)
         ax.set_title(f"Subject {sid}"); ax.set_xlabel("Epoch"); ax.set_ylabel("Accuracy")
         ax.set_ylim(0.3, 1.05); ax.legend(fontsize=7)
