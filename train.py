@@ -319,7 +319,7 @@ def main():
     axes.flatten()[-1].set_visible(False)
     fig.suptitle(
         "Training curves (final models)\n"
-        "train-eval = training set in eval mode (dropout OFF) — not a held-out validation set",
+        "validation - 15% held-out split from the training session",
         y=1.01,
     )
     plt.tight_layout()
