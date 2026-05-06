@@ -107,21 +107,61 @@ See `figures/` for:
 
 ## Discussion
 
-*(Fill in after running.)*
+**Headline.** The EEG Conformer reaches a mean cross-subject accuracy of ~73 %
+on a 50 % chance baseline, but the headline number hides a very wide spread:
+S3 reaches 93 %, while S5 sits essentially at chance (~53 %). This kind of
+between-subject variance is consistent with the BCI literature — motor-imagery
+decoding is highly subject-dependent, with the well-known "BCI illiteracy"
+phenomenon meaning roughly 15–30 % of users do not produce reliably
+decodable motor imagery patterns. S5 is plausibly such a case; S2 and S4 are
+intermediate; S1 and S3 are strong performers.
 
-**What worked well:**
-- Session-based splitting prevented data leakage and gave honest accuracy estimates.
-- CosineAnnealingLR stabilised late-stage training compared to a flat LR.
+**What worked.** Following the paper's per-subject, session-based split
+(session_T → train, session_E → test) gave an honest, leakage-free estimate.
+The grid search converged on lr = 3×10⁻⁴, batch = 16, weight_decay = 1×10⁻³,
+which matches the small-batch, small-LR regime typical for transformer-style
+models on small EEG datasets. AdamW + CosineAnnealingLR produced smooth
+training curves with no obvious instability across all five subjects, and the
+aggregate confusion matrix is almost perfectly symmetric (~73 % per class),
+so the model is not biased toward one hand at the population level.
 
-**Limitations and potential improvements:**
-- Only optimiser hyperparameters were searched; model architecture settings
-  (number of attention heads, dropout) were left at defaults.
-- Training is done separately per subject — cross-subject transfer learning
-  could improve accuracy for data-poor subjects.
-- A simple baseline (CSP + LDA) was not included for comparison; adding one
-  would make it easier to judge how much the deep model contributes.
-- The gradient-based saliency is an approximation; class activation topography
-  (as in the original paper) would give a richer spatial interpretation.
+**Per-class asymmetries.** At the individual level, the picture is less tidy.
+S1 strongly favours left-hand (93 % vs 79 %), S4 inverts that pattern
+(53 % vs 83 %), and S5 is at chance for right-hand (47 %). These per-subject
+class biases largely average out across subjects but are clinically relevant —
+a deployed BCI for any of these users would feel very different in practice.
+
+**Saliency: where the model "looks".** The gradient-based saliency tells a
+moderately surprising story. We expected the canonical sensorimotor channels
+(C3, Cz, C4) to dominate — these are the standard targets of CSP filterbanks
+and are where mu/beta event-related desynchronisation is strongest. Instead,
+the model spreads its attention more broadly, with the **frontal** region
+showing the highest mean saliency (~0.43) and motor / centro-parietal regions
+trailing slightly behind. Critically, the per-class saliency profiles for
+left- vs right-hand imagery are almost identical, meaning the Conformer is not
+discriminating the two classes by looking at *different* electrodes for each
+class — it is using the same spatial pattern but exploiting temporal/spectral
+differences inside the convolutional front-end. This is consistent with how
+the model is built (the spatial conv runs once across all channels) but does
+diverge from the classical neurophysiological story of contralateral mu
+suppression.
+
+**Limitations and what we'd do next.**
+
+- *No classical baseline.* We did not include CSP + LDA, which is the
+  standard reference point for this dataset. Without it, we can't quantify
+  how much the Conformer actually buys us over a well-tuned linear pipeline.
+- *Limited search space.* Only optimiser hyperparameters were tuned;
+  architectural choices (attention heads, depth, dropout, number of temporal
+  filters) were left at braindecode defaults.
+- *Per-subject training only.* Each model sees ~144 trials. Cross-subject
+  pretraining followed by per-subject fine-tuning is the obvious next step
+  and would likely help the weak subjects (S2, S4, S5) most.
+- *Saliency is approximate.* Input-gradient maps are noisy and order-1.
+  Integrated gradients or class activation topographies (as in the original
+  paper) would give a more faithful spatial interpretation.
+- *Only 5 of 9 subjects.* Running the full BNCI2014_001 cohort would tighten
+  the mean estimate and let us report variance more honestly.
 
 ---
 
