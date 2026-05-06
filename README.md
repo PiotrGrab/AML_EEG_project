@@ -175,6 +175,7 @@ classical neurophysiological story of contralateral mu suppression.
 ```
 .
 ├── preprocessing.py          # Data loading and normalisation utilities
+├── model_utils.py            # Shared model/config/dataloader utilities
 ├── train.py                  # Grid search + final training + plots
 ├── analysis.py               # Goal 4 depth analysis (run after train.py)
 ├── EDA.ipynb                 # Exploratory data analysis notebook
