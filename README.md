@@ -50,7 +50,7 @@ parameters and tune only the optimiser settings.
 
 ### Evaluation protocol
 
-Following the paper's protocol strictly:
+Following the paper's protocol:
 - **Session 0** (session_T) → training set  
 - **Session 1** (session_E) → held-out test set  
 - **Per-subject** models — subjects are never mixed.
